@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
-	"github.com/moncef-an/ecom/database"
-	"github.com/moncef-an/ecom/redis"
+	"github.com/moncef-an/ecom/internal/database"
+	"github.com/moncef-an/ecom/internal/redis"
 )
 
 func main() {
