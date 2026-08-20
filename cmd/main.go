@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/moncef-an/ecom/internal/database"
 	"github.com/moncef-an/ecom/internal/redis"
+	"github.com/moncef-an/ecom/internal/routes"
 )
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 		log.Fatalf("could not connect to redis %v",err)
 	}
 
+	routes.SetupRoutes(app)
 	
 	log.Fatal(app.Listen(":3030"))
 

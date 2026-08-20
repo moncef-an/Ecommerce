@@ -24,7 +24,7 @@ func Connect(dsn string)error {
 	if err := goose.SetDialect("mysql");err !=nil{
 		return err
 	}
-	if err := goose.Up(sqlDB,"/migration");err !=nil {
+	if err := goose.Up(sqlDB,"./migration");err !=nil {
 		return err
 	}
 
