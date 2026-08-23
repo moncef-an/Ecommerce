@@ -1,11 +1,11 @@
 package routes
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/moncef-an/ecom/internal/User/handlers"
+)
 
-func SetupRoutes(app *fiber.App){
-	app.Get("/api/health",func (c fiber.Ctx)error  {
-		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"Status":"ok",
-		})
-	})
+func SetupRoutes(app *fiber.App, h handlers.UserHandler){
+	app.Post("/auth/register",h.Register)
+	
 }
