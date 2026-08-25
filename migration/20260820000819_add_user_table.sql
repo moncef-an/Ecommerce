@@ -12,4 +12,4 @@ CREATE TABLE users(
 
 -- +goose Down
 SELECT 'down SQL query';
-DROP TABLE users ;
+DROP TABLE users;

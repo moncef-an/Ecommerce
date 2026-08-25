@@ -5,7 +5,7 @@ import (
 	"github.com/moncef-an/ecom/internal/User/handlers"
 )
 
-func SetupRoutes(app *fiber.App, h handlers.UserHandler){
+func SetupRoutes(app *fiber.App, h *handlers.UserHandler){
 	app.Post("/auth/register",h.Register)
 	
 }

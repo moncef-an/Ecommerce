@@ -6,6 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
+	"github.com/moncef-an/ecom/internal/User/Repository"
+	service "github.com/moncef-an/ecom/internal/User/Service"
+	"github.com/moncef-an/ecom/internal/User/handlers"
 	"github.com/moncef-an/ecom/internal/database"
 	"github.com/moncef-an/ecom/internal/redis"
 	"github.com/moncef-an/ecom/internal/routes"
@@ -28,7 +31,12 @@ func main() {
 		log.Fatalf("could not connect to redis %v",err)
 	}
 
-	routes.SetupRoutes(app)
+	db := database.GetDB()
+	Urepo := Repository.NewUserRepository(db)
+	Uservice := service.NewUserService(Urepo)
+	Uhand := handlers.NewUserHandler(Uservice)
+
+	routes.SetupRoutes(app,Uhand)
 	
 	log.Fatal(app.Listen(":3030"))
 

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/mail"
+
+	"github.com/google/uuid"
 
 	models "github.com/moncef-an/ecom/internal/User/Models"
 	"github.com/moncef-an/ecom/internal/User/Repository"
+	"github.com/moncef-an/ecom/internal/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,6 +18,7 @@ var (
 	ErrPasswordEmpty    = errors.New("password cannot be empty")
 	ErrPasswordTooShort = errors.New("password must be at least 8 characters long")
 	ErrInvalidEmail = errors.New("invalid email")
+	ErrPasswordorEmail = errors.New("invalid email or password")
 )
 
 
@@ -78,4 +81,32 @@ func (s *UserService)Register(ctx context.Context, name, email, password string)
 
 
 	return nil
+}
+
+
+func (s *UserService)Login(ctx context.Context , password , email string)(auth.Token,error){
+
+	user ,err := s.repo.GetUserByEmail(ctx, email)
+
+	if err != nil {
+		if errors.Is(err,Repository.ErrUserNotFound){
+			return auth.Token{},ErrPasswordorEmail
+		}
+
+		return auth.Token{}, fmt.Errorf("Login %w",err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err !=nil{
+		return auth.Token{}, ErrPasswordorEmail
+	}
+
+	token ,err := auth.GenerateToken(user.ID)
+
+	if err !=nil{
+		return auth.Token{}, fmt.Errorf("generate tokens: %w", err)
+	}
+
+	return *token,nil
+
 }

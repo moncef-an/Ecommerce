@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/moncef-an/ecom/internal/User/Repository"
@@ -10,10 +11,10 @@ import (
 )
 
 type UserHandler struct {
-	UserService service.UserService
+	UserService *service.UserService
 }
 
-func NewUserHandler (s service.UserService)*UserHandler{
+func NewUserHandler (s *service.UserService)*UserHandler{
 	return &UserHandler{
 		UserService: s,
 	}
@@ -44,6 +45,7 @@ func (h *UserHandler)Register(c fiber.Ctx)error{
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 
 			default :
+			fmt.Println(err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 
 		}
@@ -51,4 +53,37 @@ func (h *UserHandler)Register(c fiber.Ctx)error{
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
     	"message": "user registered successfully",
 	})
+}
+
+
+func (h *UserHandler)Login(c fiber.Ctx)error{
+	var input dto.LoginReq
+
+	if err := c.Bind().Body(&input);err !=nil{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+       		"error": "invalid request body",
+		})
+	}
+
+	token ,err := h.UserService.Login(c.Context(),input.Password,input.Email)
+
+	if err !=nil{
+		switch {
+		case errors.Is(err,service.ErrPasswordorEmail):
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error" : err.Error(),
+		 	})
+
+		default :
+		fmt.Print(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"accesstoken" : token.AccessToken ,
+		"refreshtoken" : token.RefreshToken,
+		"refreshId" : token.RefreshID,
+	})
+
 }
