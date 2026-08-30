@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	models "github.com/moncef-an/ecom/internal/User/Models"
 	"github.com/moncef-an/ecom/internal/auth"
 )
 
@@ -34,9 +35,54 @@ func AuthRequired(c fiber.Ctx) error {
 			"error": "invalid token type",
 		})
 	}
-	userID := claims["user_id"].(string)
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+    	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+    		"error": "invalid token claims",
+    	})
+	}
+
+	userRole,ok :=claims["role"].(string)
+	if !ok || userRole == ""{
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+    		"error": "invalid token claims",
+    	})
+	}
+
+	c.Locals("role",userRole)
+
 	c.Locals("user_id", userID)
 
 	return c.Next()
 
+}
+
+func RequireRole(allowedRoles ...models.Role)fiber.Handler{
+	return func(c fiber.Ctx)error{
+		role := c.Locals("role")
+		if role == nil{
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Forbidden: user role context is missing",
+			})
+		}
+		var userRole models.Role
+		switch r := role.(type) {
+		case models.Role:
+			userRole = r
+		case string:
+			userRole = models.Role(r)
+		default:
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Forbidden: invalid role format",
+			})
+		}
+		for _, allowedRole := range allowedRoles {
+			if userRole == allowedRole {
+				return c.Next() 
+			}
+		}
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden: you do not have permission to access this resource",
+		})
+	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	models "github.com/moncef-an/ecom/internal/User/Models"
 )
 
 type Token struct {
@@ -20,13 +21,14 @@ const (
 	refreshTokenTTL = 7 * 24 * time.Hour
 )
 
-func GenerateToken(userID string)(*Token,error) {
+func GenerateToken(userID string, userRole models.Role)(*Token,error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		return nil, errors.New("JWT_SECRET is not set")
 	}
 		accessClaims := jwt.MapClaims{
 		"user_id": userID,
+		"role" : userRole,
 		"exp":     time.Now().Add(accessTokenTTL).Unix(),
 		"iat":     time.Now().Unix(),
 		"type":    "access",

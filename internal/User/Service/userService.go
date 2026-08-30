@@ -101,7 +101,7 @@ func (s *UserService)Login(ctx context.Context , password , email string)(auth.T
 		return auth.Token{}, ErrPasswordorEmail
 	}
 
-	token ,err := auth.GenerateToken(user.ID)
+	token ,err := auth.GenerateToken(user.ID,user.Role)
 
 	if err !=nil{
 		return auth.Token{}, fmt.Errorf("generate tokens: %w", err)
@@ -109,4 +109,15 @@ func (s *UserService)Login(ctx context.Context , password , email string)(auth.T
 
 	return *token,nil
 
+}
+
+func (s *UserService) GetMe(ctx context.Context, userID string) (*models.User, error) {
+    user, err := s.repo.GetUserByID(ctx, userID)
+    if err != nil {
+        if errors.Is(err, Repository.ErrUserNotFound) {
+            return nil, err
+        }
+        return nil, fmt.Errorf("GetMe: %w", err)
+    }
+    return user, nil
 }
