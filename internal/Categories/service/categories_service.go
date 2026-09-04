@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/moncef-an/ecom/internal/Categories/models"
@@ -38,7 +37,6 @@ func (s *CategoryService) CreateCategory(ctx context.Context, name string) error
 	newCategory := &models.Category{
 		ID:        uuid.New().String(),
 		Name:      name,
-		CreatedAt: time.Now(),
 	}
 
 	if err := s.repo.CreateCategory(ctx, newCategory); err != nil {
