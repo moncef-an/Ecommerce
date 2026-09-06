@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -19,6 +20,7 @@ var (
 	ErrPasswordTooShort = errors.New("password must be at least 8 characters long")
 	ErrInvalidEmail = errors.New("invalid email")
 	ErrPasswordorEmail = errors.New("invalid email or password")
+	ErrEmptyName = errors.New("cannot use empty name ")
 )
 
 
@@ -40,6 +42,9 @@ func (s *UserService)Register(ctx context.Context, name, email, password string)
 		return ErrInvalidEmail
 	}
 	
+	if strings.TrimSpace(name) == "" {
+		return ErrEmptyName 
+	} 
 
 
 	if len(password) == 0{

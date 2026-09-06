@@ -36,6 +36,7 @@ func (h *UserHandler)Register(c fiber.Ctx)error{
 		switch {
 			case errors.Is(err,service.ErrInvalidEmail),
 				 errors.Is(err, service.ErrPasswordEmpty),
+				 errors.Is(err,service.ErrEmptyName),
 		 		 errors.Is(err, service.ErrPasswordTooShort):
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error" : err.Error(),
@@ -75,7 +76,6 @@ func (h *UserHandler)Login(c fiber.Ctx)error{
 		 	})
 
 		default :
-		fmt.Print(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 		}
 	}

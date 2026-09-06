@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/moncef-an/ecom/internal/Categories/dto"
 	"github.com/moncef-an/ecom/internal/Categories/service"
@@ -10,8 +12,8 @@ type CategoryHandlerStruct struct {
 	service service.CategoryService
 }
 
-func NewCategoryHandler(s service.CategoryService) CategoryHandlerStruct{
-	return CategoryHandlerStruct{
+func NewCategoryHandler(s service.CategoryService) *CategoryHandlerStruct{
+	return &CategoryHandlerStruct{
 		service: s,
 	}
 }
@@ -39,7 +41,7 @@ func (h *CategoryHandlerStruct)CreateCategory(c fiber.Ctx)error{
 }
 
 func (h *CategoryHandlerStruct)GetAllCategory(c fiber.Ctx)error{
-	limit := fiber.Query(c,"page",10)
+	limit := fiber.Query(c,"limit",10)
 
 	res,err := h.service.GetAllCategories(c.Context(),limit)
 
@@ -57,7 +59,7 @@ func (h *CategoryHandlerStruct)UpdateCategory(c fiber.Ctx)error{
 
 	if err := c.Bind().Body(&input) ; err !=nil{
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error ": err.Error(),
+			"error": "invalid request body",
 		})
 	}
 	id := c.Params("id")
@@ -74,3 +76,29 @@ func (h *CategoryHandlerStruct)UpdateCategory(c fiber.Ctx)error{
 
 }
 
+
+
+func (h *CategoryHandlerStruct) DeleteCategory(c fiber.Ctx) error {
+    id := c.Params("id")
+
+    if err := h.service.DeleteCategory(c.Context(), id); err != nil {
+        if errors.Is(err, service.ErrInvalidID) {
+            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+                "error": "invalid category id",
+            })
+        }
+        if errors.Is(err, service.ErrCategoryNotFound) {
+            return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+                "error": "category not found",
+            })
+        }
+
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "failed to delete category",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "category deleted successfully",
+    })
+}
