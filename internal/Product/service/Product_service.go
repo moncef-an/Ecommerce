@@ -39,7 +39,9 @@ func NewProductService (r repository.ProductRepoInterface, c categoryRepository.
 
 
 func (s *ProductService)AddNewProduct(ctx context.Context, name , desc , categoryName string, price float64 ,stock int)error{
-	if strings.TrimSpace(name) == ""{
+
+	name = strings.TrimSpace(name)
+	if name == ""{
 		return ErrInvalidName
 	}
 
@@ -74,24 +76,26 @@ func (s *ProductService)AddNewProduct(ctx context.Context, name , desc , categor
 	return nil
 }
 
-func (s *ProductService)ListProducts(ctx context.Context,limit int,offset int)(*[]models.Product,int64,error){
-	if limit <=0 {
-		limit = 10 
-	}
+func (s *ProductService) ListProducts(ctx context.Context, limit, offset int, categoryID string) ([]models.Product, int64, error) {
 
-	if offset < 0 {
+    if limit <= 0 || limit > 100 {
+        limit = 10
+    }
+    if offset < 0 {
         offset = 0
     }
 
-	products, total, err := s.repo.List(ctx, limit, offset)
+    categoryID = strings.TrimSpace(categoryID)
+
+    products, total, err := s.repo.List(ctx, limit, offset, categoryID)
     if err != nil {
         return nil, 0, fmt.Errorf("service failed to list products: %w", err)
     }
 
-	return &products,total,nil
+    return products, total, nil
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, product models.Product) error {
+func (s *ProductService) UpdateProduct(ctx context.Context, product models.Product,sellerID string) error {
     product.ID = strings.TrimSpace(product.ID)
     if product.ID == "" {
         return ErrInvalidID
@@ -118,25 +122,28 @@ func (s *ProductService) UpdateProduct(ctx context.Context, product models.Produ
         return ErrInvalidStock
     }
 
-    if err := s.repo.Update(ctx, &product); err != nil {
+    if err := s.repo.Update(ctx, &product,sellerID); err != nil {
         return fmt.Errorf("service failed to update product: %w", err)
     }
 
     return nil
 }
 
-func (s *ProductService)DeleteProduct(ctx context.Context, id string)error{
-	id = strings.TrimSpace(id)
-    if id == "" {
-        return ErrInvalidID
-    }
+func (s *ProductService) DeleteProduct(ctx context.Context, productID string, userID string, userRole models.Role) error {
+	productID = strings.TrimSpace(productID)
+	userID = strings.TrimSpace(userID)
 
-    if err := s.repo.Delete(ctx, id); err != nil {
-        if errors.Is(err, repository.ErrProductNotFound) {
-            return ErrProductNotFound
-        }
-        return fmt.Errorf("service failed to delete product: %w", err)
-    }
+	if productID == "" || userID == "" {
+		return errors.New("product ID and user ID are required")
+	}
 
-    return nil
+	if userRole != models.RoleAdmin && userRole != models.RoleSeller {
+		return errors.New("unauthorized: only admins or sellers can delete products")
+	}
+
+	if err := s.repo.Delete(ctx, productID, userID, userRole); err != nil {
+		return fmt.Errorf("service failed to delete product: %w", err)
+	}
+
+	return nil
 }
