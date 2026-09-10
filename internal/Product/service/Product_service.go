@@ -7,126 +7,137 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/moncef-an/ecom/internal/models"
-	"github.com/moncef-an/ecom/internal/Product/repository"
 	categoryRepository "github.com/moncef-an/ecom/internal/Categories/repository"
+	"github.com/moncef-an/ecom/internal/Product/repository"
+	"github.com/moncef-an/ecom/internal/models"
 )
 
-var(
+var (
 	ErrInvalidID         = errors.New("invalid product id")
 	ErrInvalidName       = errors.New("product name cannot be empty")
-	ErrInvalidPrice      = errors.New("product price must be greater than zero")
+	ErrInvalidPrice      = errors.New("product price cannot be negative") // تسمية دقيقة تشمل السعر المجاني 0
 	ErrInvalidStock      = errors.New("product stock cannot be negative")
 	ErrInvalidPagination = errors.New("invalid pagination parameters")
 
-	ErrProductNotFound      = errors.New("product not found")
-	ErrCategoryNotFound     = errors.New("one or more specified categories do not exist")
+	ErrProductNotFound  = errors.New("product not found")
+	ErrCategoryNotFound = errors.New("one or more specified categories do not exist")
 )
 
-
-
 type ProductService struct {
-	repo repository.ProductRepoInterface
+	repo     repository.ProductRepoInterface
 	category categoryRepository.CategorieRepoInterface
 }
 
-func NewProductService (r repository.ProductRepoInterface, c categoryRepository.CategorieRepoInterface)ProductService{
-	return ProductService{
-		repo: r,
+func NewProductService(r repository.ProductRepoInterface, c categoryRepository.CategorieRepoInterface) *ProductService {
+	return &ProductService{
+		repo:     r,
 		category: c,
 	}
 }
 
-
-func (s *ProductService)AddNewProduct(ctx context.Context, name , desc , categoryName string, price float64 ,stock int)error{
+func (s *ProductService) AddNewProduct(
+	ctx context.Context,
+	sellerID, name, desc, categoryName string,
+	price float64,
+	stock int,
+) (*models.Product, error) {
 
 	name = strings.TrimSpace(name)
-	if name == ""{
-		return ErrInvalidName
+	if name == "" {
+		return nil, ErrInvalidName
 	}
 
+	sellerID = strings.TrimSpace(sellerID)
+	if sellerID == "" {
+		return nil, errors.New("seller ID is required")
+	}
+
+
 	if price < 0 {
-		return ErrInvalidPrice
+		return nil, ErrInvalidPrice
 	}
 
 	if stock < 0 {
-		return ErrInvalidStock
+		return nil, ErrInvalidStock
 	}
 
-	cat, err := s.category.GetCategoryByName(ctx,categoryName)
-	if err !=nil {
-		return ErrCategoryNotFound
+	categoryName = strings.TrimSpace(categoryName)
+	if categoryName == "" {
+		return nil, ErrCategoryNotFound
+	}
+
+	cat, err := s.category.GetCategoryByName(ctx, categoryName)
+	if err != nil {
+
+		if errors.Is(err, categoryRepository.ErrCategoryNotFound) {
+			return nil, ErrCategoryNotFound
+		}
+		return nil, fmt.Errorf("failed to fetch category: %w", err)
 	}
 
 	product := models.Product{
-		ID: uuid.New().String(),
-		Name: name,
+		ID:          uuid.New().String(),
+		SellerID:    sellerID,
+		Name:        name,
 		Description: desc,
-		Stock: stock,
-		CategoryID: cat.ID,
-		Price: price,
+		Stock:       stock,
+		CategoryID:  cat.ID,
+		Price:       price,
 	}
 
-	err = s.repo.Create(ctx,&product)
-
-	if err != nil {
-		return fmt.Errorf("error in creating the product %w", err)
+	if err := s.repo.Create(ctx, &product); err != nil {
+		return nil, fmt.Errorf("error in creating the product: %w", err)
 	}
 
-	return nil
+	return &product, nil
 }
 
 func (s *ProductService) ListProducts(ctx context.Context, limit, offset int, categoryID string) ([]models.Product, int64, error) {
 
-    if limit <= 0 || limit > 100 {
-        limit = 10
-    }
-    if offset < 0 {
-        offset = 0
-    }
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
 
-    categoryID = strings.TrimSpace(categoryID)
+	categoryID = strings.TrimSpace(categoryID)
 
-    products, total, err := s.repo.List(ctx, limit, offset, categoryID)
-    if err != nil {
-        return nil, 0, fmt.Errorf("service failed to list products: %w", err)
-    }
+	products, total, err := s.repo.List(ctx, limit, offset, categoryID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("service failed to list products: %w", err)
+	}
 
-    return products, total, nil
+	return products, total, nil
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, product models.Product,sellerID string) error {
-    product.ID = strings.TrimSpace(product.ID)
-    if product.ID == "" {
-        return ErrInvalidID
-    }
+func (s *ProductService) UpdateProduct(ctx context.Context, product models.Product, sellerID string) error {
+	product.ID = strings.TrimSpace(product.ID)
+	if product.ID == "" {
+		return ErrInvalidID
+	}
 
-    _, err := s.repo.GetByID(ctx, product.ID)
-    if err != nil {
-        if errors.Is(err, repository.ErrProductNotFound) {
-            return ErrProductNotFound
-        }
-        return fmt.Errorf("service failed to find product: %w", err)
-    }
+	product.Name = strings.TrimSpace(product.Name)
+	if product.Name == "" {
+		return ErrInvalidName
+	}
 
-    product.Name = strings.TrimSpace(product.Name)
-    if product.Name == "" {
-        return ErrInvalidName
-    }
+	if product.Price < 0 {
+		return ErrInvalidPrice
+	}
 
-    if product.Price <= 0 {
-        return ErrInvalidPrice
-    }
+	if product.Stock < 0 {
+		return ErrInvalidStock
+	}
 
-    if product.Stock < 0 {
-        return ErrInvalidStock
-    }
+	if err := s.repo.Update(ctx, &product, sellerID); err != nil {
+		if errors.Is(err, repository.ErrProductNotFound) {
+			return ErrProductNotFound
+		}
+		return fmt.Errorf("service failed to update product: %w", err)
+	}
 
-    if err := s.repo.Update(ctx, &product,sellerID); err != nil {
-        return fmt.Errorf("service failed to update product: %w", err)
-    }
-
-    return nil
+	return nil
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, productID string, userID string, userRole models.Role) error {
@@ -142,6 +153,9 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID string, us
 	}
 
 	if err := s.repo.Delete(ctx, productID, userID, userRole); err != nil {
+		if errors.Is(err, repository.ErrProductNotFound) {
+			return ErrProductNotFound
+		}
 		return fmt.Errorf("service failed to delete product: %w", err)
 	}
 
