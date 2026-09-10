@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/moncef-an/ecom/internal/Product/models"
+	"github.com/moncef-an/ecom/internal/models"
 	"github.com/moncef-an/ecom/internal/Product/repository"
 	categoryRepository "github.com/moncef-an/ecom/internal/Categories/repository"
 )

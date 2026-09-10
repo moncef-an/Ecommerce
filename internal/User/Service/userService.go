@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	models "github.com/moncef-an/ecom/internal/User/Models"
+	models "github.com/moncef-an/ecom/internal/models"
 	"github.com/moncef-an/ecom/internal/User/Repository"
 	"github.com/moncef-an/ecom/internal/auth"
 	"golang.org/x/crypto/bcrypt"

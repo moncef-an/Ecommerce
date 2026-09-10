@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/moncef-an/ecom/internal/Categories/handler"
-	models "github.com/moncef-an/ecom/internal/User/Models"
+	models "github.com/moncef-an/ecom/internal/models"
 	"github.com/moncef-an/ecom/internal/User/handlers"
 	"github.com/moncef-an/ecom/internal/middleware"
 )

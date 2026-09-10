@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	models "github.com/moncef-an/ecom/internal/User/Models"
+	models "github.com/moncef-an/ecom/internal/models"
 )
 
 type Token struct {

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-	models "github.com/moncef-an/ecom/internal/User/Models"
+	"github.com/moncef-an/ecom/internal/models"
 	"github.com/moncef-an/ecom/internal/auth"
 )
 

@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/moncef-an/ecom/internal/Product/models"
+	"github.com/moncef-an/ecom/internal/models"
 	"gorm.io/gorm"
 	"errors"
 )

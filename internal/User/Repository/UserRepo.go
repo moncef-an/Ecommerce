@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	models "github.com/moncef-an/ecom/internal/User/Models"
+	models "github.com/moncef-an/ecom/internal/models"
 	"gorm.io/gorm"
 )
 
