@@ -1,4 +1,4 @@
-package service
+package categories
 
 import (
 	"context"
@@ -8,35 +8,31 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/moncef-an/ecom/internal/models"
-	"github.com/moncef-an/ecom/internal/Categories/repository"
 )
 
 var (
 	ErrEmptyName = errors.New("category name cannot be empty or contain only whitespace")
-	ErrCategoryNotFound = errors.New("category not found")
-	ErrInvalidID        = errors.New("category ID cannot be empty")
-
+	ErrInvalidID = errors.New("category ID cannot be empty")
 )
 
 type CategoryService struct {
-	repo repository.CategorieRepoInterface
+	repo CategoryRepositoryInterface
 }
 
-func NewCategoryService(repo repository.CategorieRepoInterface) *CategoryService {
+func NewCategoryService(repo CategoryRepositoryInterface) *CategoryService {
 	return &CategoryService{
 		repo: repo,
 	}
 }
 
 func (s *CategoryService) CreateCategory(ctx context.Context, name string) error {
-
 	if strings.TrimSpace(name) == "" {
 		return ErrEmptyName
 	}
 
 	newCategory := &models.Category{
-		ID:        uuid.New().String(),
-		Name:      name,
+		ID:   uuid.New().String(),
+		Name: name,
 	}
 
 	if err := s.repo.CreateCategory(ctx, newCategory); err != nil {
@@ -45,6 +41,7 @@ func (s *CategoryService) CreateCategory(ctx context.Context, name string) error
 
 	return nil
 }
+
 func (s *CategoryService) GetAllCategories(ctx context.Context, limit int) ([]models.Category, error) {
 	if limit <= 0 {
 		limit = 10
@@ -78,20 +75,16 @@ func (s *CategoryService) UpdateCategory(ctx context.Context, id, name string) (
 	return cat, nil
 }
 
-
 func (s *CategoryService) DeleteCategory(ctx context.Context, id string) error {
-
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return ErrInvalidID
 	}
 
-
 	_, err := s.repo.GetCategoryByID(ctx, id)
 	if err != nil {
-		return fmt.Errorf("failed to verify category existence: %w", err)
+		return ErrCategoryNotFound
 	}
-
 
 	if err := s.repo.DeleteCategory(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete category: %w", err)

@@ -1,4 +1,4 @@
-package service
+package product
 
 import (
 	"context"
@@ -7,28 +7,24 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	categoryRepository "github.com/moncef-an/ecom/internal/Categories/repository"
-	"github.com/moncef-an/ecom/internal/Product/repository"
+	"github.com/moncef-an/ecom/internal/categories"
 	"github.com/moncef-an/ecom/internal/models"
 )
 
 var (
 	ErrInvalidID         = errors.New("invalid product id")
 	ErrInvalidName       = errors.New("product name cannot be empty")
-	ErrInvalidPrice      = errors.New("product price cannot be negative") // تسمية دقيقة تشمل السعر المجاني 0
+	ErrInvalidPrice      = errors.New("product price cannot be negative")
 	ErrInvalidStock      = errors.New("product stock cannot be negative")
 	ErrInvalidPagination = errors.New("invalid pagination parameters")
-
-	ErrProductNotFound  = errors.New("product not found")
-	ErrCategoryNotFound = errors.New("one or more specified categories do not exist")
 )
 
 type ProductService struct {
-	repo     repository.ProductRepoInterface
-	category categoryRepository.CategorieRepoInterface
+	repo     ProductRepoInterface
+	category categories.CategoryRepositoryInterface
 }
 
-func NewProductService(r repository.ProductRepoInterface, c categoryRepository.CategorieRepoInterface) *ProductService {
+func NewProductService(r ProductRepoInterface, c categories.CategoryRepositoryInterface) *ProductService {
 	return &ProductService{
 		repo:     r,
 		category: c,
@@ -52,7 +48,6 @@ func (s *ProductService) AddNewProduct(
 		return nil, errors.New("seller ID is required")
 	}
 
-
 	if price < 0 {
 		return nil, ErrInvalidPrice
 	}
@@ -68,8 +63,7 @@ func (s *ProductService) AddNewProduct(
 
 	cat, err := s.category.GetCategoryByName(ctx, categoryName)
 	if err != nil {
-
-		if errors.Is(err, categoryRepository.ErrCategoryNotFound) {
+		if errors.Is(err, categories.ErrCategoryNotFound) {
 			return nil, ErrCategoryNotFound
 		}
 		return nil, fmt.Errorf("failed to fetch category: %w", err)
@@ -131,7 +125,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, product models.Produ
 	}
 
 	if err := s.repo.Update(ctx, &product, sellerID); err != nil {
-		if errors.Is(err, repository.ErrProductNotFound) {
+		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
 		return fmt.Errorf("service failed to update product: %w", err)
@@ -153,7 +147,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID string, us
 	}
 
 	if err := s.repo.Delete(ctx, productID, userID, userRole); err != nil {
-		if errors.Is(err, repository.ErrProductNotFound) {
+		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
 		return fmt.Errorf("service failed to delete product: %w", err)

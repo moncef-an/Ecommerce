@@ -1,5 +1,4 @@
-package dto
-
+package categories
 
 type CreateCategoryRequest struct {
     Name string `json:"name"`

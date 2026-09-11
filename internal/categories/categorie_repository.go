@@ -1,4 +1,4 @@
-package repository
+package categories
 
 import (
 	"context"
@@ -9,10 +9,9 @@ import (
 	"gorm.io/gorm"
 )
 
-
 var ErrCategoryNotFound = errors.New("category not found")
 
-type CategorieRepoInterface interface {
+type CategoryRepositoryInterface interface {
 	CreateCategory(ctx context.Context, category *models.Category) error
 	GetAllCategories(ctx context.Context, limit int) ([]models.Category, error)
 	GetCategoryByID(ctx context.Context, id string) (*models.Category, error)
@@ -21,33 +20,32 @@ type CategorieRepoInterface interface {
 	DeleteCategory(ctx context.Context, id string) error
 }
 
-type CategoryRepoStruct struct {
+type CategoryRepository struct {
 	db *gorm.DB
 }
 
-func NewCategoryRepo(db *gorm.DB) CategorieRepoInterface {
-	return &CategoryRepoStruct{
+func NewCategoryRepository(db *gorm.DB) CategoryRepositoryInterface {
+	return &CategoryRepository{
 		db: db,
 	}
 }
 
-func (r *CategoryRepoStruct) CreateCategory(ctx context.Context, category *models.Category) error {
+func (r *CategoryRepository) CreateCategory(ctx context.Context, category *models.Category) error {
 	if err := r.db.WithContext(ctx).Create(category).Error; err != nil {
 		return fmt.Errorf("failed to create category: %w", err)
 	}
 	return nil
 }
 
-func (r *CategoryRepoStruct) GetAllCategories(ctx context.Context, limit int) ([]models.Category, error) {
+func (r *CategoryRepository) GetAllCategories(ctx context.Context, limit int) ([]models.Category, error) {
 	var categories []models.Category
-
 	if err := r.db.WithContext(ctx).Limit(limit).Find(&categories).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 	return categories, nil
 }
 
-func (r *CategoryRepoStruct) GetCategoryByID(ctx context.Context, id string) (*models.Category, error) {
+func (r *CategoryRepository) GetCategoryByID(ctx context.Context, id string) (*models.Category, error) {
 	var category models.Category
 	if err := r.db.WithContext(ctx).First(&category, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -58,7 +56,7 @@ func (r *CategoryRepoStruct) GetCategoryByID(ctx context.Context, id string) (*m
 	return &category, nil
 }
 
-func (r *CategoryRepoStruct) GetCategoryByName(ctx context.Context, name string) (*models.Category, error) {
+func (r *CategoryRepository) GetCategoryByName(ctx context.Context, name string) (*models.Category, error) {
 	var category models.Category
 	if err := r.db.WithContext(ctx).Where("name = ?", name).First(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,7 +67,7 @@ func (r *CategoryRepoStruct) GetCategoryByName(ctx context.Context, name string)
 	return &category, nil
 }
 
-func (r *CategoryRepoStruct) UpdateCategory(ctx context.Context, category *models.Category) error {
+func (r *CategoryRepository) UpdateCategory(ctx context.Context, category *models.Category) error {
 	result := r.db.WithContext(ctx).
 		Model(&models.Category{}).
 		Where("id = ?", category.ID).
@@ -86,7 +84,7 @@ func (r *CategoryRepoStruct) UpdateCategory(ctx context.Context, category *model
 	return nil
 }
 
-func (r *CategoryRepoStruct) DeleteCategory(ctx context.Context, id string) error {
+func (r *CategoryRepository) DeleteCategory(ctx context.Context, id string) error {
 	result := r.db.WithContext(ctx).Delete(&models.Category{}, "id = ?", id)
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete category: %w", result.Error)

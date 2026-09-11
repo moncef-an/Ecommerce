@@ -1,31 +1,29 @@
-package handler
+package product
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/moncef-an/ecom/internal/Product/dto"
-	"github.com/moncef-an/ecom/internal/Product/service"
 	"github.com/moncef-an/ecom/internal/models"
 )
 
 type ProductHandler struct {
-	service service.ProductService
+	service *ProductService
 }
 
-func NewProductHandler(s service.ProductService) *ProductHandler{
+func NewProductHandler(s *ProductService) *ProductHandler {
 	return &ProductHandler{
 		service: s,
 	}
 }
 
-func(h *ProductHandler)CreateProduct(c fiber.Ctx)error{
-	var input dto.CreateProductReq
+func (h *ProductHandler) CreateProduct(c fiber.Ctx) error {
+	var input CreateProductReq
 
-	if err := c.Bind().Body(&input) ; err != nil {
+	if err := c.Bind().Body(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error" : err.Error(),
+			"error": err.Error(),
 		})
 	}
 	sellerID, ok := c.Locals("user_id").(string)
@@ -35,7 +33,7 @@ func(h *ProductHandler)CreateProduct(c fiber.Ctx)error{
 		})
 	}
 
-	product ,err := h.service.AddNewProduct(
+	product, err := h.service.AddNewProduct(
 		c.Context(),
 		sellerID,
 		input.Name,
@@ -44,28 +42,27 @@ func(h *ProductHandler)CreateProduct(c fiber.Ctx)error{
 		input.Price,
 		input.Stock)
 
-	if err !=nil{
-		switch{
-		case errors.Is(err,service.ErrCategoryNotFound):
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrCategoryNotFound):
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-       			 "error": "invalid category_id: referenced category does not exist",
-   		 	})
-		default :
+				"error": "invalid category_id: referenced category does not exist",
+			})
+		default:
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-       			 "error": "an unexpected internal error occurred",
-   		 	})
+				"error": "an unexpected internal error occurred",
+			})
 		}
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message":"product created successfully",
-		"data": product,
+		"message": "product created successfully",
+		"data":    product,
 	})
 }
 
 func (h *ProductHandler) ListProducts(c fiber.Ctx) error {
-
-	input := dto.ListProductsReq{
+	input := ListProductsReq{
 		Limit:  10,
 		Offset: 0,
 	}
@@ -93,8 +90,7 @@ func (h *ProductHandler) ListProducts(c fiber.Ctx) error {
 	})
 }
 
-func (h *ProductHandler)UpdateProduct(c fiber.Ctx)error{
-
+func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	productID := c.Params("id")
 	if productID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -102,61 +98,59 @@ func (h *ProductHandler)UpdateProduct(c fiber.Ctx)error{
 		})
 	}
 
-	sellerID,ok := c.Locals("user_id").(string)
-	if !ok || sellerID == ""{
+	sellerID, ok := c.Locals("user_id").(string)
+	if !ok || sellerID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized: missing user context",
 		})
 	}
 
-	var input dto.UpdateProductReq
+	var input UpdateProductReq
 
-	if err :=c.Bind().Body(&input) ; err !=nil{
+	if err := c.Bind().Body(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid request body format",
 		})
-	} 
-
-	product := models.Product{
-		ID: productID,
-		Name: input.Name,
-		Description: input.Description,
-		Price: input.Price,
-		Stock: input.Stock,
 	}
 
-	err := h.service.UpdateProduct(c.Context(),product,sellerID)
-	if err !=nil{
+	product := models.Product{
+		ID:          productID,
+		Name:        input.Name,
+		Description: input.Description,
+		Price:       input.Price,
+		Stock:       input.Stock,
+	}
+
+	err := h.service.UpdateProduct(c.Context(), product, sellerID)
+	if err != nil {
 		switch {
-			case errors.Is(err, service.ErrProductNotFound):
-				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-					"error": "product not found or you do not have permission to update it",
-				})
-			case errors.Is(err, service.ErrInvalidID),
-				errors.Is(err, service.ErrInvalidName),
-				errors.Is(err, service.ErrInvalidPrice),
-				errors.Is(err, service.ErrInvalidStock):
-				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": err.Error(),
-				})
-			default:
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error": "an unexpected internal error occurred",
-				})
+		case errors.Is(err, ErrProductNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "product not found or you do not have permission to update it",
+			})
+		case errors.Is(err, ErrInvalidID),
+			errors.Is(err, ErrInvalidName),
+			errors.Is(err, ErrInvalidPrice),
+			errors.Is(err, ErrInvalidStock):
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "an unexpected internal error occurred",
+			})
 		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "product updated successfully",
-		"data": product,
+		"data":    product,
 	})
-
-
 }
 
-func (h *ProductHandler)DeleteProduct(c fiber.Ctx)error{
+func (h *ProductHandler) DeleteProduct(c fiber.Ctx) error {
 	productID := c.Params("id")
-	if productID == ""{
+	if productID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "product id is required",
 		})
@@ -169,22 +163,22 @@ func (h *ProductHandler)DeleteProduct(c fiber.Ctx)error{
 		})
 	}
 
-	sellerID , ok := c.Locals("user_id").(string)
-	if !ok || sellerID == ""{
+	sellerID, ok := c.Locals("user_id").(string)
+	if !ok || sellerID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized: missing user context",
 		})
 	}
 
-	err := h.service.DeleteProduct(c.Context(),productID,sellerID,models.Role(userRole))
+	err := h.service.DeleteProduct(c.Context(), productID, sellerID, models.Role(userRole))
 
-	if err != nil{
-		switch{
-			case errors.Is(err, service.ErrProductNotFound):
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrProductNotFound):
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "product not found or you do not have permission to delete it",
 			})
-		case errors.Is(err, service.ErrInvalidID):
+		case errors.Is(err, ErrInvalidID):
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -200,6 +194,7 @@ func (h *ProductHandler)DeleteProduct(c fiber.Ctx)error{
 			})
 		}
 	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "product deleted successfully",
 	})

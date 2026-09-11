@@ -1,10 +1,9 @@
-package repository
+package product
 
 import (
 	"context"
-	"strings"
-
 	"errors"
+	"strings"
 
 	"github.com/moncef-an/ecom/internal/models"
 	"gorm.io/gorm"
@@ -19,37 +18,36 @@ var (
 type ProductRepoInterface interface {
 	Create(ctx context.Context, product *models.Product) error
 	GetByID(ctx context.Context, id string) (*models.Product, error)
-	List(ctx context.Context, limit, offset int,categoryId string) ([]models.Product, int64, error)
-	Update(ctx context.Context, product *models.Product,SellerID string) error
+	List(ctx context.Context, limit, offset int, categoryID string) ([]models.Product, int64, error)
+	Update(ctx context.Context, product *models.Product, sellerID string) error
 	Delete(ctx context.Context, productID string, userID string, userRole models.Role) error
 }
 
-type productStruct struct {
+type ProductRepository struct {
 	db *gorm.DB
 }
 
-func NewRepo(db *gorm.DB) ProductRepoInterface{
-	return &productStruct{
+func NewProductRepository(db *gorm.DB) ProductRepoInterface {
+	return &ProductRepository{
 		db: db,
 	}
 }
 
-func (r *productStruct)Create(ctx context.Context, product *models.Product)error{
-	resault := r.db.WithContext(ctx).Create(product)
-	if resault.Error != nil{
-		return resault.Error
+func (r *ProductRepository) Create(ctx context.Context, product *models.Product) error {
+	if err := r.db.WithContext(ctx).Create(product).Error; err != nil {
+		return err
 	}
-	return nil 
+	return nil
 }
 
-func (r *productStruct)GetByID(ctx context.Context,id string)(*models.Product,error){
+func (r *ProductRepository) GetByID(ctx context.Context, id string) (*models.Product, error) {
 	var product models.Product
 	query := r.db.WithContext(ctx).
-	Preload("category").Preload("Seller").
-	First(&product,"id = ?",id)
+		Preload("Category").Preload("Seller").
+		First(&product, "id = ?", id)
 
 	if errors.Is(query.Error, gorm.ErrRecordNotFound) {
-	return nil, ErrProductNotFound
+		return nil, ErrProductNotFound
 	}
 
 	if query.Error != nil {
@@ -59,7 +57,7 @@ func (r *productStruct)GetByID(ctx context.Context,id string)(*models.Product,er
 	return &product, nil
 }
 
-func (r *productStruct) List(ctx context.Context, limit, offset int, categoryID string) ([]models.Product, int64, error) {
+func (r *ProductRepository) List(ctx context.Context, limit, offset int, categoryID string) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64
 
@@ -69,14 +67,13 @@ func (r *productStruct) List(ctx context.Context, limit, offset int, categoryID 
 		query = query.Where("category_id = ?", categoryID)
 	}
 
-
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	err := query.
-		Preload("Category"). 
-		Preload("Seller").   
+		Preload("Category").
+		Preload("Seller").
 		Limit(limit).
 		Offset(offset).
 		Order("created_at DESC").
@@ -89,26 +86,26 @@ func (r *productStruct) List(ctx context.Context, limit, offset int, categoryID 
 	return products, total, nil
 }
 
-func (r *productStruct) Update(ctx context.Context, product *models.Product, sellerID string) error {
-    result := r.db.WithContext(ctx).
-        Model(&models.Product{}).
-        Where("id = ? AND seller_id = ?", product.ID, sellerID).
-        Select("*").       
-        Omit("CreatedAt").  
-        Updates(product)
+func (r *ProductRepository) Update(ctx context.Context, product *models.Product, sellerID string) error {
+	result := r.db.WithContext(ctx).
+		Model(&models.Product{}).
+		Where("id = ? AND seller_id = ?", product.ID, sellerID).
+		Select("*").
+		Omit("CreatedAt").
+		Updates(product)
 
-    if result.Error != nil {
-        return result.Error
-    }
+	if result.Error != nil {
+		return result.Error
+	}
 
-    if result.RowsAffected == 0 {
-        return ErrProductNotFound
-    }
+	if result.RowsAffected == 0 {
+		return ErrProductNotFound
+	}
 
-    return nil
+	return nil
 }
 
-func (r *productStruct) Delete(ctx context.Context, productID string, userID string, userRole models.Role) error {
+func (r *ProductRepository) Delete(ctx context.Context, productID string, userID string, userRole models.Role) error {
 	query := r.db.WithContext(ctx).Where("id = ?", productID)
 
 	if userRole != models.RoleAdmin {
@@ -122,7 +119,7 @@ func (r *productStruct) Delete(ctx context.Context, productID string, userID str
 	}
 
 	if result.RowsAffected == 0 {
-		return ErrProductNotFound 
+		return ErrProductNotFound
 	}
 
 	return nil
