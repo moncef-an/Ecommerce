@@ -13,6 +13,9 @@ import (
 
 	userRepository "github.com/moncef-an/ecom/internal/User/Repository"
 	userService "github.com/moncef-an/ecom/internal/User/Service"
+	ProductRepositoy"github.com/moncef-an/ecom/internal/Product/Repository"
+	ProductService	"github.com/moncef-an/ecom/internal/Product/service"
+	ProductHandler "github.com/moncef-an/ecom/internal/Product/handler"
 	"github.com/moncef-an/ecom/internal/User/handlers"
 
 	"github.com/moncef-an/ecom/internal/database"
@@ -45,11 +48,16 @@ func main() {
 	userSvc := userService.NewUserService(userRepo)
 	userHandler := handlers.NewUserHandler(userSvc)
 
-	categoryRepo := categoryRepository.NewCategorieRepo(db)
+	categoryRepo := categoryRepository.NewCategoryRepo(db)
 	CService := categoryService.NewCategoryService(categoryRepo)
 	Chandler := handler.NewCategoryHandler(*CService)
 
-	routes.SetupRoutes(app, userHandler,Chandler)
+	prodyctRepo := ProductRepositoy.NewRepo(db)
+	ProductService := ProductService.NewProductService(prodyctRepo,categoryRepo)
+	ProductHandler := ProductHandler.NewProductHandler(*ProductService)
+
+
+	routes.SetupRoutes(app, userHandler,Chandler,ProductHandler)
 
 	log.Fatal(app.Listen(":3030"))
 }
