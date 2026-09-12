@@ -1,5 +1,5 @@
 -- +goose Up
--- +goose StatementBegin
+
 CREATE TABLE IF NOT EXISTS categories (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -8,4 +8,3 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 -- +goose Down
 DROP TABLE IF EXISTS categories;
--- +goose StatementEnd

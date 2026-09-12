@@ -12,6 +12,17 @@ const (
 	RoleAdmin  Role = "ADMIN"
 )
 
+type OrderStatus string
+
+const (
+	OrderStatusPending    OrderStatus = "PENDING"
+	OrderStatusConfirmed  OrderStatus = "CONFIRMED"
+	OrderStatusProcessing OrderStatus = "PROCESSING"
+	OrderStatusShipped    OrderStatus = "SHIPPED"
+	OrderStatusDelivered  OrderStatus = "DELIVERED"
+	OrderStatusCancelled  OrderStatus = "CANCELLED"
+)
+
 type Product struct {
 	ID          string    `gorm:"type:varchar(36);primaryKey" json:"id"`
 	Name        string    `gorm:"type:varchar(255);not null" json:"name"`
@@ -42,22 +53,30 @@ type User struct {
 	PasswordHash string    `gorm:"column:password_hash;type:varchar(255);not null" json:"-"`
 	Role         Role      `gorm:"type:varchar(20);default:'USER';not null" json:"role"`
 	Products     []Product `gorm:"foreignKey:SellerID" json:"products,omitempty"`
+	Orders       []Order   `gorm:"foreignKey:UserID" json:"orders,omitempty"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 type Order struct {
-	ID         string    `json:"id" gorm:"type:varchar(36);primaryKey"`
-	UserID     string    `json:"user_id" gorm:"type:varchar(36);not null;index"`
-	Status     string    `json:"status" gorm:"type:varchar(36);not null;default:'PENDING'"`
-	TotalPrice float64   `json:"total_price" gorm:"type:decimal(10,2);not null"`
-	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt  time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	ID         string      `gorm:"type:varchar(36);primaryKey" json:"id"`
+	UserID     string      `gorm:"type:varchar(36);not null;index" json:"user_id"`
+	Status     OrderStatus `gorm:"type:varchar(20);default:'PENDING';not null" json:"status"`
+	TotalPrice float64     `gorm:"type:decimal(10,2);not null" json:"total_price"`
+	CreatedAt  time.Time   `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt  time.Time   `gorm:"autoUpdateTime" json:"updated_at"`
+
+	User  User        `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Items []OrderItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
 }
+
 type OrderItem struct {
-	ID        string  `json:"id" gorm:"type:varchar(36);primaryKey"`
-	OrderID   string  `json:"order_id" gorm:"type:varchar(36);not null;index"`
-	ProductID string  `json:"product_id" gorm:"type:varchar(36);not null;index"`
-	Quantity  uint    `json:"quantity" gorm:"not null"`
-	Price     float64 `json:"price" gorm:"type:decimal(10,2);not null"`
+	ID        string  `gorm:"type:varchar(36);primaryKey" json:"id"`
+	OrderID   string  `gorm:"type:varchar(36);not null;index" json:"order_id"`
+	ProductID string  `gorm:"type:varchar(36);not null;index" json:"product_id"`
+	Quantity  uint    `gorm:"not null" json:"quantity"`
+	Price     float64 `gorm:"type:decimal(10,2);not null" json:"price"`
+
+	Order   Order   `gorm:"foreignKey:OrderID" json:"order,omitempty"`
+	Product Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 }
