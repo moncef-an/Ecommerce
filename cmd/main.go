@@ -52,6 +52,8 @@ func main() {
 	productSvc := product.NewProductService(productRepo, categoryRepo)
 	productHandler := product.NewProductHandler(productSvc)
 
+	// Order Layer
+
 	// Routes Setup
 	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler)
 

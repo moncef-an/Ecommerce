@@ -45,3 +45,19 @@ type User struct {
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
+
+type Order struct {
+	ID         string    `json:"id" gorm:"type:varchar(36);primaryKey"`
+	UserID     string    `json:"user_id" gorm:"type:varchar(36);not null;index"`
+	Status     string    `json:"status" gorm:"type:varchar(36);not null;default:'PENDING'"`
+	TotalPrice float64   `json:"total_price" gorm:"type:decimal(10,2);not null"`
+	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt  time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+type OrderItem struct {
+	ID        string  `json:"id" gorm:"type:varchar(36);primaryKey"`
+	OrderID   string  `json:"order_id" gorm:"type:varchar(36);not null;index"`
+	ProductID string  `json:"product_id" gorm:"type:varchar(36);not null;index"`
+	Quantity  uint    `json:"quantity" gorm:"not null"`
+	Price     float64 `json:"price" gorm:"type:decimal(10,2);not null"`
+}
