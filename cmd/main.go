@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
 
+	cart "github.com/moncef-an/ecom/internal/cart"
 	categories "github.com/moncef-an/ecom/internal/categories"
 	"github.com/moncef-an/ecom/internal/database"
 	order "github.com/moncef-an/ecom/internal/order"
@@ -57,8 +58,13 @@ func main() {
 	orderSvc := order.NewOrderService(orderRepo, productRepo)
 	orderHandler := order.NewOrderHandler(orderSvc)
 
+	// Cart Layer
+	cartRepo := cart.NewRepository(db)
+	cartSvc := cart.NewCartService(cartRepo)
+	cartHandler := cart.NewCartHandler(cartSvc)
+
 	// Routes Setup
-	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler)
+	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler, cartHandler)
 
 	log.Fatal(app.Listen(":3030"))
 }

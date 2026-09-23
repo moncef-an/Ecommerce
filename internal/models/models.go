@@ -81,3 +81,24 @@ type OrderItem struct {
 	Product Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 }
 
+type Cart struct {
+	ID        string     `gorm:"type:varchar(36);primaryKey" json:"id"`
+	UserID    string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"user_id"`
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
+
+	User  User       `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Items []CartItem `gorm:"foreignKey:CartID" json:"items,omitempty"`
+}
+
+type CartItem struct {
+	ID        string    `gorm:"type:varchar(36);primaryKey" json:"id"`
+	CartID    string    `gorm:"type:varchar(36);not null;uniqueIndex:idx_cart_product" json:"cart_id"`
+	ProductID string    `gorm:"type:varchar(36);not null;uniqueIndex:idx_cart_product" json:"product_id"`
+	Quantity  int       `gorm:"not null;default:1" json:"quantity"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+
+	Cart    Cart    `gorm:"foreignKey:CartID" json:"cart,omitempty"`
+	Product Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+}

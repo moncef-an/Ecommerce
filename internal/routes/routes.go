@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/moncef-an/ecom/internal/cart"
 	"github.com/moncef-an/ecom/internal/categories"
 	"github.com/moncef-an/ecom/internal/middleware"
 	"github.com/moncef-an/ecom/internal/models"
@@ -16,6 +17,7 @@ func SetupRoutes(
 	ch *categories.CategoryHandler,
 	ph *product.ProductHandler,
 	oh *order.OrderHandler,
+	cartH *cart.CartHandler,
 ) {
 	// Auth & User Routes
 	app.Post("/auth/register", h.Register)
@@ -36,14 +38,22 @@ func SetupRoutes(
 	productGroup.Patch("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleSeller), ph.UpdateProduct)
 	productGroup.Delete("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin, models.RoleSeller), ph.DeleteProduct)
 
-	// Orders Routes 
+	// Cart Routes
+	cartGroup := app.Group("/cart", middleware.AuthRequired)
+	cartGroup.Get("", cartH.GetCart)
+	cartGroup.Post("/items", cartH.AddItem)
+	cartGroup.Patch("/items/:id", cartH.UpdateItemQuantity)
+	cartGroup.Delete("/items/:id", cartH.RemoveItem)
+	cartGroup.Delete("", cartH.ClearCart)
+
+	// Orders Routes
 	ordersGroup := app.Group("/orders", middleware.AuthRequired)
 	ordersGroup.Post("", oh.CreateOrder)
 	ordersGroup.Get("", oh.GetUserOrders)
 	ordersGroup.Get("/:id", oh.GetOrderByID)
 	ordersGroup.Patch("/:id/cancel", oh.CancelOrder)
 
-	// Admin Orders Routes 
+	// Admin Orders Routes
 	adminOrdersGroup := app.Group("/admin/orders", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin))
 	adminOrdersGroup.Patch("/:id/status", oh.UpdateOrderStatus)
 }
