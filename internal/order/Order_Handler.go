@@ -144,14 +144,26 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 
 	var input UpdateOrderStatusRequest
 	if err := c.Bind().Body(&input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
 	}
 
 	if err := h.service.UpdateOrderStatus(c.Context(), orderID, input.Status); err != nil {
-		if errors.Is(err, ErrOrderNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		switch {
+		case errors.Is(err, ErrOrderNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		case errors.Is(err, ErrInvalidOrderStatusTransition):
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to update order status",
+			})
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to update order status"})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{

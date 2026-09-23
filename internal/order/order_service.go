@@ -16,6 +16,7 @@ var (
 	ErrProductsNotFound    = errors.New("product not found")
 	ErrUnauthorizedAccess = errors.New("unauthorized access to this order")
 	ErrCannotCancelOrder  = errors.New("order cannot be cancelled in its current state")
+	ErrInvalidOrderStatusTransition = errors.New("Invalid status transition !")
 )
 
 type OrderService struct {
@@ -142,11 +143,38 @@ func (s *OrderService) CancelOrder(
 	return s.repo.CancelPendingOrder(ctx, orderID)
 }
 
-func (s *OrderService) UpdateOrderStatus(
-	ctx context.Context,
-	orderID string,
-	status models.OrderStatus,
-) error {
-	return s.repo.UpdateOrderStatus(ctx, orderID, status)
+func (s *OrderService)UpdateOrderStatus(ctx context.Context, orderId string ,newStatus models.OrderStatus)error{
+	order,err := s.repo.GetOrderByID(ctx,orderId)
+	if err != nil {
+		return err 
+	}
+
+	if order.Status == newStatus{
+		return nil
+	}
+
+	if !isValidStatusTransition(order.Status, newStatus){
+		return ErrInvalidOrderStatusTransition
+	}
+	return s.repo.UpdateOrderStatus(ctx,orderId, newStatus)
+
+
 }
+
+func isValidStatusTransition (current , next models.OrderStatus)bool {
+	switch current{
+	case models.OrderStatusPending:
+		return next == models.OrderStatusConfirmed || next == models.OrderStatusCancelled
+	case models.OrderStatusConfirmed:
+		return next == models.OrderStatusProcessing || next == models.OrderStatusCancelled
+	case models.OrderStatusProcessing:
+		return next == models.OrderStatusShipped
+	case models.OrderStatusShipped:
+		return next == models.OrderStatusDelivered
+	default:
+		return false
+	}
+}
+
+
 
