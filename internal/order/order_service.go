@@ -7,65 +7,146 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/moncef-an/ecom/internal/models"
-	"github.com/moncef-an/ecom/internal/product"
+	products "github.com/moncef-an/ecom/internal/product"
 )
+
 var (
-	ErrInvalidQuantity   = errors.New("quantity must be greater than zero")
-	ErrInsufficientStock = errors.New("insufficient stock for this product")
-	ErrProductNotFound   = errors.New("product not found")
+	ErrInvalidQuantity    = errors.New("quantity must be greater than zero")
+	ErrInsufficientStock  = errors.New("insufficient stock for this product")
+	ErrProductsNotFound    = errors.New("product not found")
+	ErrUnauthorizedAccess = errors.New("unauthorized access to this order")
+	ErrCannotCancelOrder  = errors.New("order cannot be cancelled in its current state")
 )
 
 type OrderService struct {
-	repo OrderRepository
-	product product.ProductRepository
+	repo    OrderRepository
+	product products.ProductRepoInterface
 }
 
-func NewOrderService(repo OrderRepository,p product.ProductRepository,userID string) *OrderService {
+func NewOrderService(
+	repo OrderRepository,
+	productRepo products.ProductRepoInterface,
+) *OrderService {
 	return &OrderService{
-		repo: repo,
-		product: p,
+		repo:    repo,
+		product: productRepo,
 	}
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, productID string , quantity int, userID string) error {
+func (s *OrderService) CreateOrder(
+	ctx context.Context,
+	productID string,
+	quantity int,
+	userID string,
+) error {
 	if quantity <= 0 {
 		return ErrInvalidQuantity
 	}
-	product , err := s.product.GetByID(ctx,productID)
-	if err != nil { 
+
+	product, err := s.product.GetByID(ctx, productID)
+	if err != nil {
+		if errors.Is(err,products.ErrProductNotFound) {
+			return ErrProductsNotFound
+		}
+
 		return fmt.Errorf("failed to fetch product: %w", err)
-	}
-	if product == nil {
-		return ErrProductNotFound
 	}
 
 	if product.Stock < quantity {
 		return ErrInsufficientStock
 	}
-	orderID := uuid.New().String()
-	itemPrice:= product.Price
-	totalPrice:= float64(quantity)* product.Price
 
-	orderItem := models.OrderItem{
-		ID:        uuid.New().String(),
+	orderID := uuid.NewString()
+
+	item := models.OrderItem{
+		ID:        uuid.NewString(),
 		OrderID:   orderID,
-		ProductID: productID,
+		ProductID: product.ID,
 		Quantity:  uint(quantity),
-		Price:     itemPrice,
+		Price:     product.Price,
 	}
+
 	order := &models.Order{
 		ID:         orderID,
 		UserID:     userID,
 		Status:     models.OrderStatusPending,
-		TotalPrice: totalPrice,
-		Items:      []models.OrderItem{orderItem},
+		TotalPrice: product.Price * float64(quantity),
 	}
 
-	if err := s.repo.CreateOrder(ctx, order); err != nil {
-		return fmt.Errorf("failed to save order: %w", err)
+	if err := s.repo.CreateOrder(
+		ctx,
+		order,
+		[]models.OrderItem{item},
+	); err != nil {
+		return fmt.Errorf("failed to create order: %w", err)
 	}
 
 	return nil
-	
+}
+
+func (s *OrderService) GetOrderByID(
+	ctx context.Context,
+	orderID string,
+	userID string,
+) (*models.Order, error) {
+	order, err := s.repo.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	if order.UserID != userID {
+		return nil, ErrUnauthorizedAccess
+	}
+
+	return order, nil
+}
+
+func (s *OrderService) GetUserOrders(
+	ctx context.Context,
+	userID string,
+	page int,
+	limit int,
+) ([]models.Order, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	return s.repo.GetUserOrders(
+		ctx,
+		userID,
+		limit,
+		offset,
+	)
+}
+
+func (s *OrderService) CancelOrder(
+	ctx context.Context,
+	orderID string,
+	userID string,
+) error {
+	order, err := s.repo.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	if order.UserID != userID {
+		return ErrUnauthorizedAccess
+	}
+
+	return s.repo.CancelPendingOrder(ctx, orderID)
+}
+
+func (s *OrderService) UpdateOrderStatus(
+	ctx context.Context,
+	orderID string,
+	status models.OrderStatus,
+) error {
+	return s.repo.UpdateOrderStatus(ctx, orderID, status)
 }
 

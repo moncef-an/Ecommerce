@@ -8,12 +8,12 @@ import (
 	"github.com/joho/godotenv"
 
 	categories "github.com/moncef-an/ecom/internal/categories"
-	product "github.com/moncef-an/ecom/internal/product"
-	user "github.com/moncef-an/ecom/internal/user"
 	"github.com/moncef-an/ecom/internal/database"
-
+	order "github.com/moncef-an/ecom/internal/order"
+	product "github.com/moncef-an/ecom/internal/product"
 	"github.com/moncef-an/ecom/internal/redis"
 	"github.com/moncef-an/ecom/internal/routes"
+	user "github.com/moncef-an/ecom/internal/user"
 )
 
 func main() {
@@ -53,9 +53,12 @@ func main() {
 	productHandler := product.NewProductHandler(productSvc)
 
 	// Order Layer
+	orderRepo := order.NewRepository(db)
+	orderSvc := order.NewOrderService(orderRepo, productRepo)
+	orderHandler := order.NewOrderHandler(orderSvc)
 
 	// Routes Setup
-	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler)
+	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler)
 
 	log.Fatal(app.Listen(":3030"))
 }
