@@ -3,178 +3,97 @@ package order
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/moncef-an/ecom/internal/models"
-	products "github.com/moncef-an/ecom/internal/product"
 )
 
 var (
-	ErrInvalidQuantity    = errors.New("quantity must be greater than zero")
-	ErrInsufficientStock  = errors.New("insufficient stock for this product")
-	ErrProductsNotFound    = errors.New("product not found")
-	ErrUnauthorizedAccess = errors.New("unauthorized access to this order")
-	ErrCannotCancelOrder  = errors.New("order cannot be cancelled in its current state")
-	ErrInvalidOrderStatusTransition = errors.New("Invalid status transition !")
+	ErrInvalidInput  = errors.New("invalid input data")
+	ErrInvalidStatus = errors.New("invalid order status")
 )
 
-type OrderService struct {
-	repo    OrderRepository
-	product products.ProductRepoInterface
+type Service interface {
+	Checkout(ctx context.Context, userID string) (*models.Order, error)
+	GetUserOrders(ctx context.Context, userID string) ([]models.Order, error)
+	GetOrderByID(ctx context.Context, id string) (*models.Order, error)
+	UpdateOrderStatus(ctx context.Context, id string, status models.OrderStatus) error
+	CancelOrder(ctx context.Context, id string, userID string) error
+	CreateOrder(ctx context.Context, order *models.Order) error
 }
 
-func NewOrderService(
-	repo OrderRepository,
-	productRepo products.ProductRepoInterface,
-) *OrderService {
-	return &OrderService{
-		repo:    repo,
-		product: productRepo,
+type orderService struct {
+	repo Repository
+}
+
+func NewService(repo Repository) Service {
+	return &orderService{
+		repo: repo,
 	}
 }
 
-func (s *OrderService) CreateOrder(
-	ctx context.Context,
-	productID string,
-	quantity int,
-	userID string,
-) error {
-	if quantity <= 0 {
-		return ErrInvalidQuantity
+func (s *orderService) Checkout(ctx context.Context, userID string) (*models.Order, error) {
+	if userID == "" {
+		return nil, ErrInvalidInput
 	}
 
-	product, err := s.product.GetByID(ctx, productID)
-	if err != nil {
-		if errors.Is(err,products.ErrProductNotFound) {
-			return ErrProductsNotFound
-		}
 
-		return fmt.Errorf("failed to fetch product: %w", err)
-	}
-
-	if product.Stock < quantity {
-		return ErrInsufficientStock
-	}
-
-	orderID := uuid.NewString()
-
-	item := models.OrderItem{
-		ID:        uuid.NewString(),
-		OrderID:   orderID,
-		ProductID: product.ID,
-		Quantity:  uint(quantity),
-		Price:     product.Price,
-	}
-
-	order := &models.Order{
-		ID:         orderID,
-		UserID:     userID,
-		Status:     models.OrderStatusPending,
-		TotalPrice: product.Price * float64(quantity),
-	}
-
-	if err := s.repo.CreateOrder(
-		ctx,
-		order,
-		[]models.OrderItem{item},
-	); err != nil {
-		return fmt.Errorf("failed to create order: %w", err)
-	}
-
-	return nil
+	return s.repo.Checkout(ctx, userID)
 }
 
-func (s *OrderService) GetOrderByID(
-	ctx context.Context,
-	orderID string,
-	userID string,
-) (*models.Order, error) {
-	order, err := s.repo.GetOrderByID(ctx, orderID)
-	if err != nil {
-		return nil, err
+func (s *orderService) GetUserOrders(ctx context.Context, userID string) ([]models.Order, error) {
+	if userID == "" {
+		return nil, ErrInvalidInput
 	}
 
-	if order.UserID != userID {
-		return nil, ErrUnauthorizedAccess
-	}
-
-	return order, nil
+	return s.repo.GetUserOrders(ctx, userID)
 }
 
-func (s *OrderService) GetUserOrders(
-	ctx context.Context,
-	userID string,
-	page int,
-	limit int,
-) ([]models.Order, int64, error) {
-	if page <= 0 {
-		page = 1
+func (s *orderService) GetOrderByID(ctx context.Context, id string) (*models.Order, error) {
+	if id == "" {
+		return nil, ErrInvalidInput
 	}
 
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-
-	offset := (page - 1) * limit
-
-	return s.repo.GetUserOrders(
-		ctx,
-		userID,
-		limit,
-		offset,
-	)
+	return s.repo.GetOrderByID(ctx, id)
 }
 
-func (s *OrderService) CancelOrder(
-	ctx context.Context,
-	orderID string,
-	userID string,
-) error {
-	order, err := s.repo.GetOrderByID(ctx, orderID)
-	if err != nil {
-		return err
+func (s *orderService) UpdateOrderStatus(ctx context.Context, id string, status models.OrderStatus) error {
+	if id == "" {
+		return ErrInvalidInput
 	}
 
-	if order.UserID != userID {
-		return ErrUnauthorizedAccess
+	if !isValidStatus(status) {
+		return ErrInvalidStatus
 	}
 
-	return s.repo.CancelPendingOrder(ctx, orderID)
+	return s.repo.UpdateOrderStatus(ctx, id, string(status))
 }
 
-func (s *OrderService)UpdateOrderStatus(ctx context.Context, orderId string ,newStatus models.OrderStatus)error{
-	order,err := s.repo.GetOrderByID(ctx,orderId)
-	if err != nil {
-		return err 
+func (s *orderService) CancelOrder(ctx context.Context, id string, userID string) error {
+	if id == "" || userID == "" {
+		return ErrInvalidInput
 	}
 
-	if order.Status == newStatus{
-		return nil
-	}
-
-	if !isValidStatusTransition(order.Status, newStatus){
-		return ErrInvalidOrderStatusTransition
-	}
-	return s.repo.UpdateOrderStatus(ctx,orderId, newStatus)
-
-
+	return s.repo.CancelOrder(ctx, id, userID)
 }
 
-func isValidStatusTransition (current , next models.OrderStatus)bool {
-	switch current{
-	case models.OrderStatusPending:
-		return next == models.OrderStatusConfirmed || next == models.OrderStatusCancelled
-	case models.OrderStatusConfirmed:
-		return next == models.OrderStatusProcessing || next == models.OrderStatusCancelled
-	case models.OrderStatusProcessing:
-		return next == models.OrderStatusShipped
-	case models.OrderStatusShipped:
-		return next == models.OrderStatusDelivered
+func (s *orderService) CreateOrder(ctx context.Context, order *models.Order) error {
+	if order == nil || order.UserID == "" {
+		return ErrInvalidInput
+	}
+
+	return s.repo.CreateOrder(ctx, order)
+}
+
+func isValidStatus(status models.OrderStatus) bool {
+	switch status {
+	case models.OrderStatusPending,
+		models.OrderStatusConfirmed,
+		models.OrderStatusProcessing,
+		models.OrderStatusShipped,
+		models.OrderStatusDelivered,
+		models.OrderStatusCancelled:
+		return true
 	default:
 		return false
 	}
 }
-
-
-

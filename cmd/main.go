@@ -55,8 +55,8 @@ func main() {
 
 	// Order Layer
 	orderRepo := order.NewRepository(db)
-	orderSvc := order.NewOrderService(orderRepo, productRepo)
-	orderHandler := order.NewOrderHandler(orderSvc)
+	orderSvc := order.NewService(orderRepo)
+	orderHandler := order.NewHandler(orderSvc)
 
 	// Cart Layer
 	cartRepo := cart.NewRepository(db)

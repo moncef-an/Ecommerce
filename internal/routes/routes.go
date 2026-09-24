@@ -13,47 +13,69 @@ import (
 
 func SetupRoutes(
 	app *fiber.App,
-	h *user.UserHandler,
-	ch *categories.CategoryHandler,
-	ph *product.ProductHandler,
-	oh *order.OrderHandler,
-	cartH *cart.CartHandler,
+	userHandler *user.UserHandler,
+	categoryHandler *categories.CategoryHandler,
+	productHandler *product.ProductHandler,
+	orderHandler *order.Handler, 
+	cartHandler *cart.CartHandler,
 ) {
-	// Auth & User Routes
-	app.Post("/auth/register", h.Register)
-	app.Post("/auth/login", h.Login)
-	app.Get("/users/me", middleware.AuthRequired, h.GetMe)
 
-	// Categories Routes
-	category := app.Group("/category")
-	category.Get("", ch.GetAllCategory)
-	category.Post("", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin), ch.CreateCategory)
-	category.Delete("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin), ch.DeleteCategory)
-	category.Patch("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin), ch.UpdateCategory)
+	api := app.Group("/api/v1")
 
-	// Products Routes
-	productGroup := app.Group("/products")
-	productGroup.Get("/", ph.ListProducts)
-	productGroup.Post("/", middleware.AuthRequired, middleware.RequireRole(models.RoleSeller), ph.CreateProduct)
-	productGroup.Patch("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleSeller), ph.UpdateProduct)
-	productGroup.Delete("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin, models.RoleSeller), ph.DeleteProduct)
 
-	// Cart Routes
-	cartGroup := app.Group("/cart", middleware.AuthRequired)
-	cartGroup.Get("", cartH.GetCart)
-	cartGroup.Post("/items", cartH.AddItem)
-	cartGroup.Patch("/items/:id", cartH.UpdateItemQuantity)
-	cartGroup.Delete("/items/:id", cartH.RemoveItem)
-	cartGroup.Delete("", cartH.ClearCart)
+	// 1. Auth & User Routes
 
-	// Orders Routes
-	ordersGroup := app.Group("/orders", middleware.AuthRequired)
-	ordersGroup.Post("", oh.CreateOrder)
-	ordersGroup.Get("", oh.GetUserOrders)
-	ordersGroup.Get("/:id", oh.GetOrderByID)
-	ordersGroup.Patch("/:id/cancel", oh.CancelOrder)
+	auth := api.Group("/auth")
+	auth.Post("/register", userHandler.Register)
+	auth.Post("/login", userHandler.Login)
 
-	// Admin Orders Routes
-	adminOrdersGroup := app.Group("/admin/orders", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin))
-	adminOrdersGroup.Patch("/:id/status", oh.UpdateOrderStatus)
+	users := api.Group("/users", middleware.AuthRequired)
+	users.Get("/me", userHandler.GetMe)
+
+
+	// 2. Categories Routes
+
+	categoriesGroup := api.Group("/categories")
+	categoriesGroup.Get("", categoryHandler.GetAllCategory)
+
+	adminCategories := categoriesGroup.Group("", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin))
+	adminCategories.Post("", categoryHandler.CreateCategory)
+	adminCategories.Patch("/:id", categoryHandler.UpdateCategory)
+	adminCategories.Delete("/:id", categoryHandler.DeleteCategory)
+
+
+	// 3. Products Routes
+
+	productsGroup := api.Group("/products")
+	productsGroup.Get("", productHandler.ListProducts)
+
+
+	sellerProducts := productsGroup.Group("", middleware.AuthRequired, middleware.RequireRole(models.RoleSeller))
+	sellerProducts.Post("", productHandler.CreateProduct)
+	sellerProducts.Patch("/:id", productHandler.UpdateProduct)
+
+
+	productsGroup.Delete("/:id", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin, models.RoleSeller), productHandler.DeleteProduct)
+
+	// 4. Cart Routes
+
+	cartGroup := api.Group("/cart", middleware.AuthRequired)
+	cartGroup.Get("", cartHandler.GetCart)
+	cartGroup.Post("/items", cartHandler.AddItem)
+	cartGroup.Patch("/items/:id", cartHandler.UpdateItemQuantity)
+	cartGroup.Delete("/items/:id", cartHandler.RemoveItem)
+	cartGroup.Delete("", cartHandler.ClearCart)
+
+	// 5. Orders Routes
+
+	ordersGroup := api.Group("/orders", middleware.AuthRequired)
+	ordersGroup.Post("/checkout", orderHandler.Checkout)
+	ordersGroup.Get("", orderHandler.GetUserOrders)
+	ordersGroup.Get("/:id", orderHandler.GetOrderByID)
+	ordersGroup.Patch("/:id/cancel", orderHandler.CancelOrder)
+
+	// 6. Admin Orders Routes
+
+	adminOrdersGroup := api.Group("/admin/orders", middleware.AuthRequired, middleware.RequireRole(models.RoleAdmin))
+	adminOrdersGroup.Patch("/:id/status", orderHandler.UpdateOrderStatus)
 }
