@@ -37,6 +37,7 @@ func main() {
 	}
 
 	db := database.GetDB()
+	rdb := redis.GetRedis()
 
 	// User Layer
 	userRepo := user.NewUserRepository(db)
@@ -49,8 +50,9 @@ func main() {
 	categoryHandler := categories.NewCategoryHandler(categorySvc)
 
 	// Product Layer
+	newProductCache := product.NewProductCache(rdb)
 	productRepo := product.NewProductRepository(db)
-	productSvc := product.NewProductService(productRepo, categoryRepo)
+	productSvc := product.NewProductService(productRepo, categoryRepo, newProductCache)
 	productHandler := product.NewProductHandler(productSvc)
 
 	// Order Layer

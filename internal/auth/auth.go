@@ -85,3 +85,4 @@ func ValidateToken(tokenString string) (jwt.MapClaims, error) {
 
 	return claims, nil
 }
+

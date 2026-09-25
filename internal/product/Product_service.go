@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/moncef-an/ecom/internal/categories"
@@ -22,12 +24,14 @@ var (
 type ProductService struct {
 	repo     ProductRepoInterface
 	category categories.CategoryRepositoryInterface
+	cache ProductCache
 }
 
-func NewProductService(r ProductRepoInterface, c categories.CategoryRepositoryInterface) *ProductService {
+func NewProductService(r ProductRepoInterface, c categories.CategoryRepositoryInterface, cache ProductCache) *ProductService {
 	return &ProductService{
 		repo:     r,
 		category: c,
+		cache: cache,
 	}
 }
 
@@ -83,6 +87,10 @@ func (s *ProductService) AddNewProduct(
 		return nil, fmt.Errorf("error in creating the product: %w", err)
 	}
 
+	if err:= s.cache.DeleteByPattern(ctx, "products:list:*");err != nil {
+		log.Printf("[Redis Warning] failed to invalidate product list cache on add: %v", err)
+	}
+
 	return &product, nil
 }
 
@@ -97,9 +105,28 @@ func (s *ProductService) ListProducts(ctx context.Context, limit, offset int, ca
 
 	categoryID = strings.TrimSpace(categoryID)
 
+	cacheKey := fmt.Sprintf("products:list:limit=%d:offset=%d:category=%s", limit, offset, categoryID)
+
+	cachedResault ,err := s.cache.Get(ctx,cacheKey)
+	if err == nil && cachedResault != nil{
+		return cachedResault.Products,cachedResault.Total,nil
+	}
+
+	if err != nil && errors.Is(err,ErrCacheMiss){
+		log.Printf("[Redis Warning] failed to read cache key %s: %v", cacheKey, err)
+	}
+
 	products, total, err := s.repo.List(ctx, limit, offset, categoryID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("service failed to list products: %w", err)
+	}
+
+	toCache := ProductListResult{
+		Products: products,
+		Total: total,
+	}
+	if cacheErr := s.cache.Set(ctx,cacheKey,toCache,5 * time.Minute);cacheErr!=nil{
+		log.Printf("[Redis Warning] failed to set cache key %s: %v", cacheKey, cacheErr)
 	}
 
 	return products, total, nil
@@ -131,6 +158,10 @@ func (s *ProductService) UpdateProduct(ctx context.Context, product models.Produ
 		return fmt.Errorf("service failed to update product: %w", err)
 	}
 
+	if err := s.cache.DeleteByPattern(ctx, "products:list:*"); err != nil {
+		log.Printf("[Redis Warning] failed to invalidate product list cache on update: %v", err)
+	}
+
 	return nil
 }
 
@@ -151,6 +182,9 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID string, us
 			return ErrProductNotFound
 		}
 		return fmt.Errorf("service failed to delete product: %w", err)
+	}
+	if err := s.cache.DeleteByPattern(ctx, "products:list:*"); err != nil {
+		log.Printf("[Redis Warning] failed to invalidate product list cache on delete: %v", err)
 	}
 
 	return nil
