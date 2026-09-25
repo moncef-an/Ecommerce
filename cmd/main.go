@@ -40,8 +40,9 @@ func main() {
 	rdb := redis.GetRedis()
 
 	// User Layer
+	cache := user.NewUserRedisStore(rdb)
 	userRepo := user.NewUserRepository(db)
-	userSvc := user.NewUserService(userRepo)
+	userSvc := user.NewUserService(userRepo,cache)
 	userHandler := user.NewUserHandler(userSvc)
 
 	// Categories Layer

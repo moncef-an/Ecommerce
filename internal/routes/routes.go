@@ -29,8 +29,6 @@ func SetupRoutes(
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
 
-	users := api.Group("/users", middleware.AuthRequired)
-	users.Get("/me", userHandler.GetMe)
 
 
 	// 2. Categories Routes

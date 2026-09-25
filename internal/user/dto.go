@@ -17,3 +17,11 @@ type UserResponse struct {
     Email string `json:"email"`
     Role  string `json:"role"`
 }
+
+type RefreshReq struct {
+	RefreshToken string `json:"refreshtoken"`
+}
+
+type LogoutReq struct {
+	RefreshID string `json:"refreshId"`
+}

@@ -18,7 +18,7 @@ type Token struct {
 
 const (
 	accessTokenTTL  = 15 * time.Minute
-	refreshTokenTTL = 7 * 24 * time.Hour
+	RefreshTokenTTL = 7 * 24 * time.Hour
 )
 
 func GenerateToken(userID string, userRole models.Role)(*Token,error) {
@@ -26,37 +26,27 @@ func GenerateToken(userID string, userRole models.Role)(*Token,error) {
 	if secret == "" {
 		return nil, errors.New("JWT_SECRET is not set")
 	}
-		accessClaims := jwt.MapClaims{
-		"user_id": userID,
-		"role" : userRole,
-		"exp":     time.Now().Add(accessTokenTTL).Unix(),
-		"iat":     time.Now().Unix(),
-		"type":    "access",
-	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	
-	signedAccessToken, err := accessToken.SignedString([]byte(secret))
+
+	accessToken,err :=GenerateAccessToken(userID,userRole)
 	if err != nil {
-		return nil, err
-	}
-	refreshID := uuid.NewString() 
+		return nil , err 
+	} 
+	refreshID := uuid.NewString()
 
 	refreshClaims := jwt.MapClaims{
 		"user_id": userID,
 		"jti":     refreshID,
-		"exp":     time.Now().Add(refreshTokenTTL).Unix(),
+		"exp":     time.Now().Add(RefreshTokenTTL).Unix(),
 		"iat":     time.Now().Unix(),
 		"type":    "refresh",
-	}
+	} 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-
 	signedRefreshToken, err := refreshToken.SignedString([]byte(secret))
 	if err != nil {
 		return nil, err
 	}
-
 	return &Token{
-		AccessToken:  signedAccessToken,
+		AccessToken:  accessToken,
 		RefreshToken: signedRefreshToken,
 		RefreshID:    refreshID,
 	}, nil
@@ -86,3 +76,20 @@ func ValidateToken(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+func GenerateAccessToken(userId string , userRole models.Role)(string,error){
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", errors.New("JWT_SECRET is not set")
+	}
+	accessClaims := jwt.MapClaims{
+		"user_id": userId,
+		"role":    userRole,
+		"exp":     time.Now().Add(accessTokenTTL).Unix(),
+		"iat":     time.Now().Unix(),
+		"type":    "access",
+	}
+
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256,accessClaims)
+
+	return accessToken.SignedString([]byte(secret))
+}

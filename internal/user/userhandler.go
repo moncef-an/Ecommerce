@@ -80,24 +80,59 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) GetMe(c fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok || userID == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+
+func (h *UserHandler) RefreshToken(c fiber.Ctx) error {
+	var input RefreshReq
+
+	if err := c.Bind().Body(&input); err != nil || input.RefreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "refresh token is required",
+		})
 	}
 
-	user, err := h.UserService.GetMe(c.Context(), userID)
+	newAccessToken, err := h.UserService.RefreshAccessToken(c.Context(), input.RefreshToken)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		if errors.Is(err, ErrInvalidRefreshToken) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid or expired refresh token",
+			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(UserResponse{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-		Role:  string(user.Role),
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"accesstoken": newAccessToken,
+	})
+}
+
+func (h *UserHandler) Refreshtoken(c fiber.Ctx) error {
+	var input RefreshReq
+
+	if err := c.Bind().Body(&input); err != nil || input.RefreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "refresh token is required",
+		})
+	}
+
+	token, err := h.UserService.RefreshAccessToken(
+		c.Context(),
+		input.RefreshToken,
+	)
+	if err != nil {
+		if errors.Is(err, ErrInvalidRefreshToken) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid or expired refresh token",
+			})
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "internal server error",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"accesstoken": token.AccessToken,
+		"refreshtoken": token.RefreshToken,
+		"refreshId":    token.RefreshID,
 	})
 }
