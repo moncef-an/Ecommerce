@@ -38,6 +38,7 @@ func main() {
 
 	db := database.GetDB()
 	rdb := redis.GetRedis()
+	rateLimiter := user.NewRedisRateLimiter(rdb)
 
 	// User Layer
 	cache := user.NewUserRedisStore(rdb)
@@ -67,7 +68,7 @@ func main() {
 	cartHandler := cart.NewCartHandler(cartSvc)
 
 	// Routes Setup
-	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler, cartHandler)
+	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler, cartHandler,rateLimiter)
 
 	log.Fatal(app.Listen(":3030"))
 }

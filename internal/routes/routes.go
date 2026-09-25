@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/moncef-an/ecom/internal/cart"
 	"github.com/moncef-an/ecom/internal/categories"
@@ -18,16 +20,21 @@ func SetupRoutes(
 	productHandler *product.ProductHandler,
 	orderHandler *order.Handler, 
 	cartHandler *cart.CartHandler,
+	rateLimiter *user.RedisRateLimiter,
 ) {
 
 	api := app.Group("/api/v1")
 
-
+	loginLimiter := user.LoginRateLimiterMiddleware(
+		rateLimiter,
+		5,
+		time.Minute,
+	)
 	// 1. Auth & User Routes
 
 	auth := api.Group("/auth")
 	auth.Post("/register", userHandler.Register)
-	auth.Post("/login", userHandler.Login)
+	auth.Post("/login", loginLimiter,userHandler.Login)
 
 
 
