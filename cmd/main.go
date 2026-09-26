@@ -10,6 +10,7 @@ import (
 	cart "github.com/moncef-an/ecom/internal/cart"
 	categories "github.com/moncef-an/ecom/internal/categories"
 	"github.com/moncef-an/ecom/internal/database"
+	"github.com/moncef-an/ecom/internal/middleware"
 	order "github.com/moncef-an/ecom/internal/order"
 	product "github.com/moncef-an/ecom/internal/product"
 	"github.com/moncef-an/ecom/internal/redis"
@@ -38,7 +39,7 @@ func main() {
 
 	db := database.GetDB()
 	rdb := redis.GetRedis()
-	rateLimiter := user.NewRedisRateLimiter(rdb)
+	rateLimiter := middleware.NewRedisRateLimiter(rdb)
 
 	// User Layer
 	cache := user.NewUserRedisStore(rdb)
