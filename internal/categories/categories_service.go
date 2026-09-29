@@ -25,9 +25,9 @@ func NewCategoryService(repo CategoryRepositoryInterface) *CategoryService {
 	}
 }
 
-func (s *CategoryService) CreateCategory(ctx context.Context, name string) error {
+func (s *CategoryService) CreateCategory(ctx context.Context, name string) (*models.Category,error) {
 	if strings.TrimSpace(name) == "" {
-		return ErrEmptyName
+		return nil,ErrEmptyName
 	}
 
 	newCategory := &models.Category{
@@ -36,10 +36,10 @@ func (s *CategoryService) CreateCategory(ctx context.Context, name string) error
 	}
 
 	if err := s.repo.CreateCategory(ctx, newCategory); err != nil {
-		return fmt.Errorf("failed to create category: %w", err)
+		return nil,fmt.Errorf("failed to create category: %w", err)
 	}
 
-	return nil
+	return newCategory,nil
 }
 
 func (s *CategoryService) GetAllCategories(ctx context.Context, limit int) ([]models.Category, error) {

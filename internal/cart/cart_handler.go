@@ -29,12 +29,12 @@ func (h *CartHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.H
 
 // GET /cart
 func (h *CartHandler) GetCart(c fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(string)
+	user_id, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	cart, err := h.service.GetCart(c.Context(), userID)
+	cart, err := h.service.GetCart(c.Context(), user_id)
 	if err != nil {
 		return h.mapError(c, err)
 	}
@@ -44,7 +44,7 @@ func (h *CartHandler) GetCart(c fiber.Ctx) error {
 
 // POST /cart/items
 func (h *CartHandler) AddItem(c fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(string)
+	user_id, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -54,7 +54,7 @@ func (h *CartHandler) AddItem(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	if err := h.service.AddItem(c.Context(), userID, req.ProductID, req.Quantity); err != nil {
+	if err := h.service.AddItem(c.Context(), user_id, req.ProductID, req.Quantity); err != nil {
 		return h.mapError(c, err)
 	}
 
@@ -65,7 +65,7 @@ func (h *CartHandler) AddItem(c fiber.Ctx) error {
 
 // PATCH /cart/items/:id
 func (h *CartHandler) UpdateItemQuantity(c fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(string)
+	user_id, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -76,7 +76,7 @@ func (h *CartHandler) UpdateItemQuantity(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	if err := h.service.UpdateItemQuantity(c.Context(), userID, cartItemID, req.Quantity); err != nil {
+	if err := h.service.UpdateItemQuantity(c.Context(), user_id, cartItemID, req.Quantity); err != nil {
 		return h.mapError(c, err)
 	}
 
@@ -87,13 +87,13 @@ func (h *CartHandler) UpdateItemQuantity(c fiber.Ctx) error {
 
 // DELETE /cart/items/:id
 func (h *CartHandler) RemoveItem(c fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(string)
+	user_id, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 	cartItemID := c.Params("id")
 
-	if err := h.service.RemoveItem(c.Context(), userID, cartItemID); err != nil {
+	if err := h.service.RemoveItem(c.Context(), user_id, cartItemID); err != nil {
 		return h.mapError(c, err)
 	}
 
@@ -104,12 +104,12 @@ func (h *CartHandler) RemoveItem(c fiber.Ctx) error {
 
 // DELETE /cart
 func (h *CartHandler) ClearCart(c fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(string)
+	user_id, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	if err := h.service.ClearCart(c.Context(), userID); err != nil {
+	if err := h.service.ClearCart(c.Context(), user_id); err != nil {
 		return h.mapError(c, err)
 	}
 

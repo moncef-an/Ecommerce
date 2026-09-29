@@ -26,7 +26,8 @@ func (h *CategoryHandler) CreateCategory(c fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.CreateCategory(c.Context(), input.Name); err != nil {
+	category,err := h.service.CreateCategory(c.Context(), input.Name)
+	if err != nil {
 		if errors.Is(err, ErrEmptyName) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
@@ -38,8 +39,9 @@ func (h *CategoryHandler) CreateCategory(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "the category has been created",
-	})
+    "message":  "the category has been created",
+    "category": category,
+})
 }
 
 func (h *CategoryHandler) GetAllCategory(c fiber.Ctx) error {

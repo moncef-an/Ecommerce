@@ -1,6 +1,7 @@
 package database
 
 import (
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"gorm.io/driver/mysql"
@@ -20,6 +21,11 @@ func Connect(dsn string)error {
 	if err !=nil{
 		return err
 	}
+
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxIdleConns(25)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
 
 	if err := goose.SetDialect("mysql");err !=nil{
 		return err
