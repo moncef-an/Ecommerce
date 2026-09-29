@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -84,40 +85,13 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 func (h *UserHandler) RefreshToken(c fiber.Ctx) error {
 	var input RefreshReq
 
-	if err := c.Bind().Body(&input); err != nil || input.RefreshToken == "" {
+	if err := c.Bind().Body(&input); err != nil || strings.TrimSpace(input.RefreshToken) == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "refresh token is required",
 		})
 	}
 
-	newAccessToken, err := h.UserService.RefreshAccessToken(c.Context(), input.RefreshToken)
-	if err != nil {
-		if errors.Is(err, ErrInvalidRefreshToken) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "invalid or expired refresh token",
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"accesstoken": newAccessToken,
-	})
-}
-
-func (h *UserHandler) Refreshtoken(c fiber.Ctx) error {
-	var input RefreshReq
-
-	if err := c.Bind().Body(&input); err != nil || input.RefreshToken == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "refresh token is required",
-		})
-	}
-
-	token, err := h.UserService.RefreshAccessToken(
-		c.Context(),
-		input.RefreshToken,
-	)
+	token, err := h.UserService.RefreshAccessToken(c.Context(), input.RefreshToken)
 	if err != nil {
 		if errors.Is(err, ErrInvalidRefreshToken) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -131,8 +105,29 @@ func (h *UserHandler) Refreshtoken(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"accesstoken": token.AccessToken,
+		"accesstoken":  token.AccessToken,
 		"refreshtoken": token.RefreshToken,
 		"refreshId":    token.RefreshID,
+	})
+}
+
+
+func (h *UserHandler) Logout(c fiber.Ctx) error {
+	var input LogoutReq
+
+	if err := c.Bind().Body(&input); err != nil || strings.TrimSpace(input.RefreshID) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "refreshId is required",
+		})
+	}
+
+	if err := h.UserService.Logout(c.Context(), input.RefreshID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "internal server error",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "logged out successfully",
 	})
 }

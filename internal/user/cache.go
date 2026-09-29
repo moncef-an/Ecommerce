@@ -8,12 +8,20 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type RedisUserInterface interface{
+	SetRefreshToken(ctx context.Context, refreshID, userID string, ttl time.Duration) error 
+	GetRefreshToken(ctx context.Context, refreshID string) (string, error)
+	DeleteRefreshToken(ctx context.Context, refreshID string) error
+}
+
 type UserRedisStore struct {
 	client *redis.Client
 }
 
-func NewUserRedisStore(client *redis.Client) *UserRedisStore {
-	return &UserRedisStore{client: client}
+func NewUserRedisStore(client *redis.Client) RedisUserInterface {
+	return &UserRedisStore{
+		client: client,
+	}
 }
 
 func (s *UserRedisStore) SetRefreshToken(ctx context.Context, refreshID, userID string, ttl time.Duration) error {

@@ -50,6 +50,22 @@ func SetupRoutes(
 		userHandler.Login,
 	)
 
+	auth.Post(
+		"/refresh",
+		middleware.RateLimitMiddleware(
+			rateLimiter,
+			"refresh",
+			10,
+			time.Minute,
+		),
+		userHandler.RefreshToken,
+	)
+
+	auth.Post(
+		"/logout",
+		userHandler.Logout,
+	)
+
 	// 2. Categories Routes
 
 	categoriesGroup := api.Group("/categories")
