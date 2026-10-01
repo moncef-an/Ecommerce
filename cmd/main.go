@@ -4,9 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
 
+	_ "github.com/moncef-an/ecom/docs"
 	cart "github.com/moncef-an/ecom/internal/cart"
 	categories "github.com/moncef-an/ecom/internal/categories"
 	"github.com/moncef-an/ecom/internal/database"
@@ -18,6 +20,19 @@ import (
 	user "github.com/moncef-an/ecom/internal/user"
 )
 
+// @title E-Commerce API
+// @version 1.0
+// @description This is a sample E-commerce API.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:3030
+// @BasePath /api/v1
 func main() {
 	app := fiber.New()
 
@@ -70,6 +85,9 @@ func main() {
 
 	// Routes Setup
 	routes.SetupRoutes(app, userHandler, categoryHandler, productHandler, orderHandler, cartHandler,rateLimiter)
+
+	// Swagger Setup
+	app.Get("/swagger/*", swaggo.HandlerDefault)
 
 	log.Fatal(app.Listen(":3030"))
 }

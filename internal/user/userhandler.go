@@ -18,6 +18,18 @@ func NewUserHandler(s *UserService) *UserHandler {
 	}
 }
 
+// Register godoc
+// @Summary Register a new user
+// @Description Register a new user in the system
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterReq true "Registration Request"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 409 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /auth/register [post]
 func (h *UserHandler) Register(c fiber.Ctx) error {
 	var input RegisterReq
 
@@ -52,6 +64,18 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 	})
 }
 
+// Login godoc
+// @Summary Login user
+// @Description Authenticates a user and returns tokens
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginReq true "Login Request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /auth/login [post]
 func (h *UserHandler) Login(c fiber.Ctx) error {
 	var input LoginReq
 
@@ -82,6 +106,18 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 }
 
 
+// RefreshToken godoc
+// @Summary Refresh access token
+// @Description Refresh the JWT access token using a refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshReq true "Refresh Token Request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /auth/refresh [post]
 func (h *UserHandler) RefreshToken(c fiber.Ctx) error {
 	var input RefreshReq
 
@@ -112,6 +148,17 @@ func (h *UserHandler) RefreshToken(c fiber.Ctx) error {
 }
 
 
+// Logout godoc
+// @Summary Logout user
+// @Description Logs out a user by invalidating the refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LogoutReq true "Logout Request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /auth/logout [post]
 func (h *UserHandler) Logout(c fiber.Ctx) error {
 	var input LogoutReq
 
