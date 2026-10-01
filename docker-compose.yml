@@ -9,10 +9,10 @@ services:
       - "3030:3030"
     environment:
       # Override the local addresses with Docker service names
-      - MYSQL_DSN=root:${DB_PASSWORD:-moncefan}@tcp(mysql:3306)/${DB_NAME:-ecomerce}?charset=utf8mb4&parseTime=True&loc=Local
+      - MYSQL_DSN=root:${DB_PASSWORD}@tcp(mysql:3306)/${DB_NAME:-ecomerce}?charset=utf8mb4&parseTime=True&loc=Local
       - REDIS_ADDR=redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-moncefan}
-      - JWT_SECRET=${JWT_SECRET:-moncefan951753i}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
     env_file:
       - .env
     depends_on:
@@ -26,7 +26,7 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-moncefan}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME:-ecomerce}
     volumes:
       - mysql_data:/var/lib/mysql
@@ -40,9 +40,9 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    command: /bin/sh -c 'redis-server --requirepass "$${REDIS_PASSWORD:-moncefan}"'
+    command: /bin/sh -c 'redis-server --requirepass "$${REDIS_PASSWORD}"'
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-moncefan}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
