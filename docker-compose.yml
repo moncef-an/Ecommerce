@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3030:3030"
+    environment:
+      # Override the local addresses with Docker service names
+      - MYSQL_DSN=root:${DB_PASSWORD:-moncefan}@tcp(mysql:3306)/${DB_NAME:-ecomerce}?charset=utf8mb4&parseTime=True&loc=Local
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-moncefan}
+      - JWT_SECRET=${JWT_SECRET:-moncefan951753i}
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - ecom_network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-moncefan}
+      MYSQL_DATABASE: ${DB_NAME:-ecomerce}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecom_network
+
+  redis:
+    image: redis:7.2-alpine
+    command: /bin/sh -c 'redis-server --requirepass "$${REDIS_PASSWORD:-moncefan}"'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-moncefan}
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecom_network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  ecom_network:
+    driver: bridge
