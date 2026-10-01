@@ -1,2 +1,11 @@
 .env
 .aider*
+
+# Binaries & build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+api
+api.exe
