@@ -10,8 +10,7 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
-# Build the application
-# CGO_ENABLED=0 creates a statically linked binary which runs without issues in alpine/scratch
+
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/api ./cmd/main.go
 
 # Final Stage

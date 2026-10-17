@@ -16,7 +16,7 @@ func NewCartHandler(service *CartService) *CartHandler {
 	}
 }
 
-// RegisterRoutes تسجيل جميع الـ Endpoints الخاصة بالسلة
+
 func (h *CartHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler) {
 	cart := router.Group("/cart", authMiddleware)
 
@@ -118,7 +118,7 @@ func (h *CartHandler) ClearCart(c fiber.Ctx) error {
 	})
 }
 
-// mapError تحويل أخطاء الـ Service إلى HTTP Status Codes
+
 func (h *CartHandler) mapError(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, ErrInvalidQuantity):
